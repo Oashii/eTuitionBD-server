@@ -235,6 +235,104 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
   }
 });
 
+// ==================== USER PROFILE ROUTES ====================
+
+// Update User Profile
+app.put('/api/profile', verifyToken, async (req, res) => {
+  try {
+    const { name, phone, profileImage } = req.body;
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (phone) updateData.phone = phone;
+    if (profileImage) updateData.profileImage = profileImage;
+
+    await usersCollection.updateOne(
+      { _id: new ObjectId(req.user.userId) },
+      { $set: updateData }
+    );
+
+    const updatedUser = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) }, { projection: { password: 0 } });
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Tutors Listing (Latest tutors for home page)
+app.get('/api/tutors/latest', async (req, res) => {
+  try {
+    const tutors = await usersCollection
+      .find(
+        { role: 'Tutor', status: 'active' },
+        { projection: { password: 0 } }
+      )
+      .limit(6)
+      .toArray();
+
+    res.json({ tutors });
+  } catch (error) {
+    console.error('Get latest tutors error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get All Tutors with Pagination
+app.get('/api/tutors', async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const tutors = await usersCollection
+      .find(
+        { role: 'Tutor', status: 'active' },
+        { projection: { password: 0 } }
+      )
+      .skip(skip)
+      .limit(parseInt(limit))
+      .toArray();
+
+    const total = await usersCollection.countDocuments({ role: 'Tutor', status: 'active' });
+
+    res.json({
+      tutors,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Get tutors error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Tutor Profile by ID
+app.get('/api/tutors/:id', async (req, res) => {
+  try {
+    const tutor = await usersCollection.findOne(
+      { _id: new ObjectId(req.params.id), role: 'Tutor' },
+      { projection: { password: 0 } }
+    );
+
+    if (!tutor) {
+      return res.status(404).json({ message: 'Tutor not found' });
+    }
+
+    res.json({ tutor });
+  } catch (error) {
+    console.error('Get tutor profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // ==================== ANALYTICS & REPORTS ROUTES ====================
 
 // Get Platform Analytics (Admin only)
