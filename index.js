@@ -235,6 +235,78 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
   }
 });
 
+// ==================== ANALYTICS & REPORTS ROUTES ====================
+
+// Get Platform Analytics (Admin only)
+app.get('/api/admin/analytics', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const totalUsers = await usersCollection.countDocuments();
+    const totalStudents = await usersCollection.countDocuments({ role: 'Student' });
+    const totalTutors = await usersCollection.countDocuments({ role: 'Tutor' });
+    const totalTuitions = await tuitionsCollection.countDocuments();
+    const approvedTuitions = await tuitionsCollection.countDocuments({ status: 'Approved' });
+    const pendingTuitions = await tuitionsCollection.countDocuments({ status: 'Pending' });
+    const rejectedTuitions = await tuitionsCollection.countDocuments({ status: 'Rejected' });
+
+    const payments = await paymentsCollection.find({}).toArray();
+    const totalEarnings = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+    const applicationStats = {
+      pending: await applicationsCollection.countDocuments({ status: 'Pending' }),
+      approved: await applicationsCollection.countDocuments({ status: 'Approved' }),
+      rejected: await applicationsCollection.countDocuments({ status: 'Rejected' }),
+    };
+
+    res.json({
+      analytics: {
+        users: {
+          total: totalUsers,
+          students: totalStudents,
+          tutors: totalTutors,
+          admins: await usersCollection.countDocuments({ role: 'Admin' }),
+        },
+        tuitions: {
+          total: totalTuitions,
+          approved: approvedTuitions,
+          pending: pendingTuitions,
+          rejected: rejectedTuitions,
+        },
+        applications: applicationStats,
+        financial: {
+          totalEarnings,
+          totalTransactions: payments.length,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Get analytics error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Transaction History (Admin only)
+app.get('/api/admin/transactions', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const transactions = await paymentsCollection
+      .find({})
+      .sort({ transactionDate: -1 })
+      .toArray();
+
+    const totalAmount = transactions.reduce((sum, txn) => sum + txn.amount, 0);
+
+    res.json({
+      transactions,
+      summary: {
+        totalTransactions: transactions.length,
+        totalAmount,
+      },
+    });
+  } catch (error) {
+    console.error('Get transactions error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // ==================== ADMIN ROUTES ====================
 
 // Get All Users (Admin only)
