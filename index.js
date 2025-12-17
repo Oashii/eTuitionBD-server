@@ -235,6 +235,114 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
   }
 });
 
+// ==================== ADMIN ROUTES ====================
+
+// Get All Users (Admin only)
+app.get('/api/admin/users', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const users = await usersCollection
+      .find({}, { projection: { password: 0 } })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({ users });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Update User (Admin only)
+app.put('/api/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const userId = new ObjectId(req.params.id);
+    const { name, email, role, status, profileImage } = req.body;
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (role) updateData.role = role;
+    if (status) updateData.status = status;
+    if (profileImage) updateData.profileImage = profileImage;
+
+    await usersCollection.updateOne(
+      { _id: userId },
+      { $set: updateData }
+    );
+
+    res.json({ message: 'User updated successfully' });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Delete User (Admin only)
+app.delete('/api/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const userId = new ObjectId(req.params.id);
+
+    await usersCollection.deleteOne({ _id: userId });
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Pending Tuitions (Admin only)
+app.get('/api/admin/tuitions/pending', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const tuitions = await tuitionsCollection
+      .find({ status: 'Pending' })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({ tuitions });
+  } catch (error) {
+    console.error('Get pending tuitions error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get All Tuitions (Admin only)
+app.get('/api/admin/tuitions', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const tuitions = await tuitionsCollection
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({ tuitions });
+  } catch (error) {
+    console.error('Get all tuitions error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Approve/Reject Tuition (Admin only)
+app.patch('/api/admin/tuitions/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const tuitionId = new ObjectId(req.params.id);
+    const { status } = req.body;
+
+    if (!['Approved', 'Rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    await tuitionsCollection.updateOne(
+      { _id: tuitionId },
+      { $set: { status, updatedAt: new Date() } }
+    );
+
+    res.json({ message: `Tuition ${status.toLowerCase()} successfully`, status });
+  } catch (error) {
+    console.error('Update tuition status error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // ==================== PAYMENT & TRANSACTION ROUTES ====================
 
 // Record Payment Transaction
