@@ -235,6 +235,147 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
   }
 });
 
+// ==================== TUTOR APPLICATION ROUTES ====================
+
+// Create Application (Tutor applies for a tuition)
+app.post('/api/applications', verifyToken, async (req, res) => {
+  try {
+    const { tuitionId, qualifications, experience, expectedSalary } = req.body;
+
+    const tuition = await tuitionsCollection.findOne({ _id: new ObjectId(tuitionId) });
+
+    if (!tuition) {
+      return res.status(404).json({ message: 'Tuition not found' });
+    }
+
+    const user = await usersCollection.findOne({ _id: new ObjectId(req.user.userId) });
+
+    const newApplication = {
+      tuitionId: new ObjectId(tuitionId),
+      tutorId: new ObjectId(req.user.userId),
+      qualifications,
+      experience,
+      expectedSalary,
+      status: 'Pending',
+      tutorName: user.name,
+      tutorEmail: user.email,
+      tutorProfileImage: user.profileImage || '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const result = await applicationsCollection.insertOne(newApplication);
+
+    res.status(201).json({
+      message: 'Application submitted successfully',
+      application: { _id: result.insertedId, ...newApplication },
+    });
+  } catch (error) {
+    console.error('Create application error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Tutor's Applications
+app.get('/api/my-applications', verifyToken, async (req, res) => {
+  try {
+    const applications = await applicationsCollection
+      .find({ tutorId: new ObjectId(req.user.userId) })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({ applications });
+  } catch (error) {
+    console.error('Get applications error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Applications for a Tuition Post (for student)
+app.get('/api/tuitions/:tuitionId/applications', verifyToken, async (req, res) => {
+  try {
+    const tuitionId = new ObjectId(req.params.tuitionId);
+
+    const tuition = await tuitionsCollection.findOne({ _id: tuitionId });
+
+    if (!tuition) {
+      return res.status(404).json({ message: 'Tuition not found' });
+    }
+
+    if (tuition.postedBy.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'Not authorized to view applications for this tuition' });
+    }
+
+    const applications = await applicationsCollection
+      .find({ tuitionId: tuitionId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({ applications });
+  } catch (error) {
+    console.error('Get tuition applications error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Update Application Status
+app.patch('/api/applications/:id', verifyToken, async (req, res) => {
+  try {
+    const applicationId = new ObjectId(req.params.id);
+    const { status } = req.body;
+
+    const application = await applicationsCollection.findOne({ _id: applicationId });
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    const tuition = await tuitionsCollection.findOne({ _id: application.tuitionId });
+
+    if (tuition.postedBy.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'Not authorized to update this application' });
+    }
+
+    await applicationsCollection.updateOne(
+      { _id: applicationId },
+      { $set: { status, updatedAt: new Date() } }
+    );
+
+    res.json({ message: 'Application status updated successfully', status });
+  } catch (error) {
+    console.error('Update application error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Delete Application (Tutor can delete their own pending applications)
+app.delete('/api/applications/:id', verifyToken, async (req, res) => {
+  try {
+    const applicationId = new ObjectId(req.params.id);
+
+    const application = await applicationsCollection.findOne({ _id: applicationId });
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    if (application.tutorId.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'Not authorized to delete this application' });
+    }
+
+    if (application.status !== 'Pending') {
+      return res.status(400).json({ message: 'Cannot delete non-pending applications' });
+    }
+
+    await applicationsCollection.deleteOne({ _id: applicationId });
+
+    res.json({ message: 'Application deleted successfully' });
+  } catch (error) {
+    console.error('Delete application error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // ==================== TUITION ROUTES ====================
 
 // Create Tuition Post
