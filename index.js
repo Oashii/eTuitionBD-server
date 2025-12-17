@@ -235,6 +235,81 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
   }
 });
 
+// ==================== PAYMENT & TRANSACTION ROUTES ====================
+
+// Record Payment Transaction
+app.post('/api/payments', verifyToken, async (req, res) => {
+  try {
+    const { applicationId, amount, tutorId } = req.body;
+
+    const application = await applicationsCollection.findOne({ _id: new ObjectId(applicationId) });
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    const payment = {
+      applicationId: new ObjectId(applicationId),
+      tutorId: new ObjectId(tutorId),
+      studentId: new ObjectId(req.user.userId),
+      amount: parseFloat(amount),
+      status: 'Success',
+      transactionDate: new Date(),
+      transactionId: `TXN-${Date.now()}`,
+    };
+
+    const result = await paymentsCollection.insertOne(payment);
+
+    // Update application status to Approved after payment
+    await applicationsCollection.updateOne(
+      { _id: new ObjectId(applicationId) },
+      { $set: { status: 'Approved', updatedAt: new Date() } }
+    );
+
+    res.status(201).json({
+      message: 'Payment recorded successfully',
+      payment: { _id: result.insertedId, ...payment },
+    });
+  } catch (error) {
+    console.error('Record payment error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get User's Payment History
+app.get('/api/my-payments', verifyToken, async (req, res) => {
+  try {
+    const payments = await paymentsCollection
+      .find({ studentId: new ObjectId(req.user.userId) })
+      .sort({ transactionDate: -1 })
+      .toArray();
+
+    const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+    res.json({ payments, totalPaid });
+  } catch (error) {
+    console.error('Get payment history error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Tutor's Revenue History
+app.get('/api/tutor-revenue', verifyToken, async (req, res) => {
+  try {
+    const revenues = await paymentsCollection
+      .find({ tutorId: new ObjectId(req.user.userId) })
+      .sort({ transactionDate: -1 })
+      .toArray();
+
+    const totalRevenue = revenues.reduce((sum, revenue) => sum + revenue.amount, 0);
+
+    res.json({ revenues, totalRevenue });
+  } catch (error) {
+    console.error('Get revenue history error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // ==================== TUTOR APPLICATION ROUTES ====================
 
 // Create Application (Tutor applies for a tuition)
