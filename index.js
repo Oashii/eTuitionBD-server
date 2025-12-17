@@ -775,6 +775,7 @@ app.post('/api/applications', verifyToken, async (req, res) => {
     const newApplication = {
       tuitionId: new ObjectId(tuitionId),
       tutorId: new ObjectId(req.user.userId),
+      studentId: tuition.postedBy,
       qualifications,
       experience,
       expectedSalary,
@@ -836,6 +837,48 @@ app.get('/api/tuitions/:tuitionId/applications', verifyToken, async (req, res) =
     res.json({ applications });
   } catch (error) {
     console.error('Get tuition applications error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Single Application by ID
+app.get('/api/applications/:id', verifyToken, async (req, res) => {
+  try {
+    const applicationId = new ObjectId(req.params.id);
+    console.log('Fetching application:', req.params.id);
+
+    const application = await applicationsCollection.findOne({ _id: applicationId });
+
+    if (!application) {
+      console.log('Application not found:', req.params.id);
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    console.log('Application found:', application);
+
+    // Get the tuition to verify the user is the student who posted it
+    const tuition = await tuitionsCollection.findOne({ _id: application.tuitionId });
+
+    if (!tuition) {
+      console.log('Tuition not found for application:', application.tuitionId);
+      return res.status(404).json({ message: 'Associated tuition not found' });
+    }
+
+    // Verify that the user is either the tutor or the student who posted this tuition
+    const userIdString = typeof req.user.userId === 'string' ? req.user.userId : req.user.userId.toString();
+    const tuitionPostedById = tuition.postedBy.toString();
+    const applicationTutorId = application.tutorId.toString();
+
+    console.log('Authorization check:', { userIdString, tuitionPostedById, applicationTutorId });
+
+    if (userIdString !== tuitionPostedById && userIdString !== applicationTutorId) {
+      console.log('Not authorized:', userIdString, 'vs', tuitionPostedById, applicationTutorId);
+      return res.status(403).json({ message: 'Not authorized to view this application' });
+    }
+
+    res.json({ application });
+  } catch (error) {
+    console.error('Get application error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
