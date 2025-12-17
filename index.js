@@ -191,6 +191,41 @@ app.post('/api/auth/save-profile', verifyToken, async (req, res) => {
   }
 });
 
+// Firebase user login - converts Firebase token to JWT
+app.post('/api/auth/firebase-login', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Find user by email in MongoDB
+    const user = await usersCollection.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Generate JWT token for this user
+    const token = jwt.sign(
+      { userId: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profileImage: user.profileImage,
+      },
+    });
+  } catch (error) {
+    console.error('Firebase login error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Login Route
 app.post('/api/auth/login', async (req, res) => {
   try {
