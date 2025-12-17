@@ -1,12 +1,15 @@
 # eTuitionBD Server API Documentation
 
 ## Base URL
+
 ```
 http://localhost:5000
 ```
 
 ## Authentication
+
 All protected routes require a JWT token in the Authorization header:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -16,9 +19,11 @@ Authorization: Bearer <token>
 ## 1. Authentication Routes
 
 ### Register User
+
 **POST** `/api/auth/register`
 
 **Request Body:**
+
 ```json
 {
   "name": "John Doe",
@@ -30,6 +35,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "message": "User registered successfully",
@@ -44,9 +50,11 @@ Authorization: Bearer <token>
 ```
 
 ### Login User
+
 **POST** `/api/auth/login`
 
 **Request Body:**
+
 ```json
 {
   "email": "john@example.com",
@@ -55,6 +63,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "message": "Login successful",
@@ -70,9 +79,11 @@ Authorization: Bearer <token>
 ```
 
 ### Google Login
+
 **POST** `/api/auth/google`
 
 **Request Body:**
+
 ```json
 {
   "email": "john@gmail.com",
@@ -82,6 +93,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "message": "Google login successful",
@@ -97,9 +109,11 @@ Authorization: Bearer <token>
 ```
 
 ### Get Current User
-**GET** `/api/auth/me` *(Protected)*
+
+**GET** `/api/auth/me` _(Protected)_
 
 **Response:** `200 OK`
+
 ```json
 {
   "user": {
@@ -118,9 +132,11 @@ Authorization: Bearer <token>
 ## 2. Tuition Routes
 
 ### Create Tuition Post
-**POST** `/api/tuitions` *(Protected)*
+
+**POST** `/api/tuitions` _(Protected)_
 
 **Request Body:**
+
 ```json
 {
   "subject": "Mathematics",
@@ -135,9 +151,11 @@ Authorization: Bearer <token>
 **Response:** `201 Created`
 
 ### Get All Tuitions with Filters
+
 **GET** `/api/tuitions?page=1&limit=10&subject=Math&location=Dhaka&class=Class10&sortBy=createdAt&order=desc`
 
 **Query Parameters:**
+
 - `page` (default: 1)
 - `limit` (default: 10)
 - `subject` (search)
@@ -147,6 +165,7 @@ Authorization: Bearer <token>
 - `order` (asc or desc)
 
 **Response:** `200 OK`
+
 ```json
 {
   "tuitions": [...],
@@ -160,9 +179,11 @@ Authorization: Bearer <token>
 ```
 
 ### Get Latest Tuitions (Home Page)
+
 **GET** `/api/tuitions/latest/home`
 
 **Response:** `200 OK`
+
 ```json
 {
   "tuitions": [...]
@@ -170,24 +191,28 @@ Authorization: Bearer <token>
 ```
 
 ### Get Single Tuition
+
 **GET** `/api/tuitions/:id`
 
 **Response:** `200 OK`
 
 ### Get User's Tuitions
-**GET** `/api/my-tuitions` *(Protected)*
+
+**GET** `/api/my-tuitions` _(Protected)_
 
 **Response:** `200 OK`
 
 ### Update Tuition
-**PUT** `/api/tuitions/:id` *(Protected)*
+
+**PUT** `/api/tuitions/:id` _(Protected)_
 
 **Request Body:** Same as create
 
 **Response:** `200 OK`
 
 ### Delete Tuition
-**DELETE** `/api/tuitions/:id` *(Protected)*
+
+**DELETE** `/api/tuitions/:id` _(Protected)_
 
 **Response:** `200 OK`
 
@@ -196,9 +221,11 @@ Authorization: Bearer <token>
 ## 3. Tutor Application Routes
 
 ### Create Application
-**POST** `/api/applications` *(Protected)*
+
+**POST** `/api/applications` _(Protected)_
 
 **Request Body:**
+
 ```json
 {
   "tuitionId": "tuition_id",
@@ -211,19 +238,23 @@ Authorization: Bearer <token>
 **Response:** `201 Created`
 
 ### Get Tutor's Applications
-**GET** `/api/my-applications` *(Protected)*
+
+**GET** `/api/my-applications` _(Protected)_
 
 **Response:** `200 OK`
 
 ### Get Applications for a Tuition
-**GET** `/api/tuitions/:tuitionId/applications` *(Protected)*
+
+**GET** `/api/tuitions/:tuitionId/applications` _(Protected)_
 
 **Response:** `200 OK`
 
 ### Update Application Status
-**PATCH** `/api/applications/:id` *(Protected)*
+
+**PATCH** `/api/applications/:id` _(Protected)_
 
 **Request Body:**
+
 ```json
 {
   "status": "Approved"
@@ -233,7 +264,8 @@ Authorization: Bearer <token>
 **Response:** `200 OK`
 
 ### Delete Application
-**DELETE** `/api/applications/:id` *(Protected)*
+
+**DELETE** `/api/applications/:id` _(Protected)_
 
 **Response:** `200 OK`
 
@@ -242,9 +274,11 @@ Authorization: Bearer <token>
 ## 4. Payment Routes
 
 ### Record Payment
-**POST** `/api/payments` *(Protected)*
+
+**POST** `/api/payments` _(Protected)_
 
 **Request Body:**
+
 ```json
 {
   "applicationId": "application_id",
@@ -256,9 +290,11 @@ Authorization: Bearer <token>
 **Response:** `201 Created`
 
 ### Get User's Payment History
-**GET** `/api/my-payments` *(Protected)*
+
+**GET** `/api/my-payments` _(Protected)_
 
 **Response:** `200 OK`
+
 ```json
 {
   "payments": [...],
@@ -267,9 +303,11 @@ Authorization: Bearer <token>
 ```
 
 ### Get Tutor's Revenue History
-**GET** `/api/tutor-revenue` *(Protected)*
+
+**GET** `/api/tutor-revenue` _(Protected)_
 
 **Response:** `200 OK`
+
 ```json
 {
   "revenues": [...],
@@ -282,9 +320,11 @@ Authorization: Bearer <token>
 ## 5. User Profile Routes
 
 ### Update Profile
-**PUT** `/api/profile` *(Protected)*
+
+**PUT** `/api/profile` _(Protected)_
 
 **Request Body:**
+
 ```json
 {
   "name": "Updated Name",
@@ -296,27 +336,32 @@ Authorization: Bearer <token>
 **Response:** `200 OK`
 
 ### Get Latest Tutors
+
 **GET** `/api/tutors/latest`
 
 **Response:** `200 OK`
 
 ### Get All Tutors
+
 **GET** `/api/tutors?page=1&limit=10`
 
 **Response:** `200 OK`
 
 ### Get Tutor Profile
+
 **GET** `/api/tutors/:id`
 
 **Response:** `200 OK`
 
 ### Get Tutor's Ongoing Tuitions
-**GET** `/api/tutor-ongoing-tuitions` *(Protected)*
+
+**GET** `/api/tutor-ongoing-tuitions` _(Protected)_
 
 **Response:** `200 OK`
 
 ### Get Applied Tutors for a Tuition
-**GET** `/api/tuitions/:tuitionId/applied-tutors` *(Protected)*
+
+**GET** `/api/tuitions/:tuitionId/applied-tutors` _(Protected)_
 
 **Response:** `200 OK`
 
@@ -325,14 +370,17 @@ Authorization: Bearer <token>
 ## 6. Admin Routes (Admin Only)
 
 ### Get All Users
-**GET** `/api/admin/users` *(Protected, Admin)*
+
+**GET** `/api/admin/users` _(Protected, Admin)_
 
 **Response:** `200 OK`
 
 ### Update User
-**PUT** `/api/admin/users/:id` *(Protected, Admin)*
+
+**PUT** `/api/admin/users/:id` _(Protected, Admin)_
 
 **Request Body:**
+
 ```json
 {
   "name": "Updated Name",
@@ -344,24 +392,29 @@ Authorization: Bearer <token>
 **Response:** `200 OK`
 
 ### Delete User
-**DELETE** `/api/admin/users/:id` *(Protected, Admin)*
+
+**DELETE** `/api/admin/users/:id` _(Protected, Admin)_
 
 **Response:** `200 OK`
 
 ### Get All Tuitions
-**GET** `/api/admin/tuitions` *(Protected, Admin)*
+
+**GET** `/api/admin/tuitions` _(Protected, Admin)_
 
 **Response:** `200 OK`
 
 ### Get Pending Tuitions
-**GET** `/api/admin/tuitions/pending` *(Protected, Admin)*
+
+**GET** `/api/admin/tuitions/pending` _(Protected, Admin)_
 
 **Response:** `200 OK`
 
 ### Approve/Reject Tuition
-**PATCH** `/api/admin/tuitions/:id` *(Protected, Admin)*
+
+**PATCH** `/api/admin/tuitions/:id` _(Protected, Admin)_
 
 **Request Body:**
+
 ```json
 {
   "status": "Approved"
@@ -375,9 +428,11 @@ Authorization: Bearer <token>
 ## 7. Analytics Routes (Admin Only)
 
 ### Get Platform Analytics
-**GET** `/api/admin/analytics` *(Protected, Admin)*
+
+**GET** `/api/admin/analytics` _(Protected, Admin)_
 
 **Response:** `200 OK`
+
 ```json
 {
   "analytics": {
@@ -407,7 +462,8 @@ Authorization: Bearer <token>
 ```
 
 ### Get Transaction History
-**GET** `/api/admin/transactions` *(Protected, Admin)*
+
+**GET** `/api/admin/transactions` _(Protected, Admin)_
 
 **Response:** `200 OK`
 
@@ -416,6 +472,7 @@ Authorization: Bearer <token>
 ## Error Responses
 
 ### Unauthorized (401)
+
 ```json
 {
   "message": "No token provided"
@@ -423,6 +480,7 @@ Authorization: Bearer <token>
 ```
 
 ### Forbidden (403)
+
 ```json
 {
   "message": "Invalid or expired token"
@@ -430,6 +488,7 @@ Authorization: Bearer <token>
 ```
 
 ### Not Found (404)
+
 ```json
 {
   "message": "Resource not found"
@@ -437,6 +496,7 @@ Authorization: Bearer <token>
 ```
 
 ### Server Error (500)
+
 ```json
 {
   "message": "Server error",

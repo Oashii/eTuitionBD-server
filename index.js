@@ -145,7 +145,7 @@ app.post('/api/auth/save-profile', async (req, res) => {
           $set: {
             name: name || existingUser.name,
             phone: phone || existingUser.phone,
-            role: role || existingUser.role,
+            role: role,
             profileImage: profileImage || existingUser.profileImage,
           },
         }
@@ -167,7 +167,7 @@ app.post('/api/auth/save-profile', async (req, res) => {
     const newUser = {
       name,
       email,
-      role: role || 'Student',
+      role: role,
       phone,
       profileImage: profileImage || '',
       status: 'active',
