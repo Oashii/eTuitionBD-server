@@ -131,7 +131,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Save Firebase user profile (no password hashing needed)
-app.post('/api/auth/save-profile', verifyToken, async (req, res) => {
+app.post('/api/auth/save-profile', async (req, res) => {
   try {
     const { name, email, phone, role, profileImage } = req.body;
 
