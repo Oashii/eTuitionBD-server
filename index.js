@@ -235,6 +235,57 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
   }
 });
 
+// Get Tutor's Ongoing Tuitions (Approved tuitions)
+app.get('/api/tutor-ongoing-tuitions', verifyToken, async (req, res) => {
+  try {
+    const approvedApplications = await applicationsCollection
+      .find({ tutorId: new ObjectId(req.user.userId), status: 'Approved' })
+      .toArray();
+
+    const tuitionIds = approvedApplications.map((app) => app.tuitionId);
+
+    const tuitions = await tuitionsCollection
+      .find({ _id: { $in: tuitionIds } })
+      .toArray();
+
+    const tutionDetails = tuitions.map((tuition) => {
+      const application = approvedApplications.find((app) => app.tuitionId.toString() === tuition._id.toString());
+      return { ...tuition, applicationDetails: application };
+    });
+
+    res.json({ tuitions: tutionDetails });
+  } catch (error) {
+    console.error('Get tutor ongoing tuitions error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Student's Applied Tutors for a Tuition
+app.get('/api/tuitions/:tuitionId/applied-tutors', verifyToken, async (req, res) => {
+  try {
+    const tuitionId = new ObjectId(req.params.tuitionId);
+
+    const tuition = await tuitionsCollection.findOne({ _id: tuitionId });
+
+    if (!tuition) {
+      return res.status(404).json({ message: 'Tuition not found' });
+    }
+
+    if (tuition.postedBy.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    const applications = await applicationsCollection
+      .find({ tuitionId: tuitionId })
+      .toArray();
+
+    res.json({ applications });
+  } catch (error) {
+    console.error('Get applied tutors error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // ==================== USER PROFILE ROUTES ====================
 
 // Update User Profile
