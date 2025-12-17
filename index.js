@@ -130,6 +130,67 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+// Save Firebase user profile (no password hashing needed)
+app.post('/api/auth/save-profile', verifyToken, async (req, res) => {
+  try {
+    const { name, email, phone, role, profileImage } = req.body;
+
+    // Check if user already exists
+    const existingUser = await usersCollection.findOne({ email });
+    if (existingUser) {
+      // Update existing user profile
+      await usersCollection.updateOne(
+        { email },
+        {
+          $set: {
+            name: name || existingUser.name,
+            phone: phone || existingUser.phone,
+            role: role || existingUser.role,
+            profileImage: profileImage || existingUser.profileImage,
+          },
+        }
+      );
+      
+      const updatedUser = await usersCollection.findOne({ email });
+      return res.json({
+        message: 'User profile updated',
+        user: {
+          _id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+        },
+      });
+    }
+
+    // Create new user (Firebase authenticated, no password in DB)
+    const newUser = {
+      name,
+      email,
+      role: role || 'Student',
+      phone,
+      profileImage: profileImage || '',
+      status: 'active',
+      createdAt: new Date(),
+    };
+
+    const result = await usersCollection.insertOne(newUser);
+
+    res.status(201).json({
+      message: 'User profile saved successfully',
+      user: {
+        _id: result.insertedId,
+        name,
+        email,
+        role: newUser.role,
+      },
+    });
+  } catch (error) {
+    console.error('Save profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Login Route
 app.post('/api/auth/login', async (req, res) => {
   try {
