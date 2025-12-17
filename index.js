@@ -195,9 +195,18 @@ app.post('/api/auth/save-profile', verifyToken, async (req, res) => {
 app.post('/api/auth/firebase-login', async (req, res) => {
   try {
     const { email, name, profileImage } = req.body;
+    
+    console.log('Firebase login request:', { email, name, profileImage });
+
+    // Check if required email is provided
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
 
     // Find user by email in MongoDB
     let user = await usersCollection.findOne({ email });
+    
+    console.log('User found in DB:', user ? 'yes' : 'no');
     
     // If user doesn't exist, create them with default Student role
     if (!user) {
@@ -212,6 +221,7 @@ app.post('/api/auth/firebase-login', async (req, res) => {
       };
       const result = await usersCollection.insertOne(newUser);
       user = { _id: result.insertedId, ...newUser };
+      console.log('Created new user:', user._id);
     }
 
     // Generate JWT token for this user
@@ -234,7 +244,7 @@ app.post('/api/auth/firebase-login', async (req, res) => {
     });
   } catch (error) {
     console.error('Firebase login error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Login failed', error: error.message });
   }
 });
 
