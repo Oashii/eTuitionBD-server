@@ -194,12 +194,24 @@ app.post('/api/auth/save-profile', verifyToken, async (req, res) => {
 // Firebase user login - converts Firebase token to JWT
 app.post('/api/auth/firebase-login', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, name, profileImage } = req.body;
 
     // Find user by email in MongoDB
-    const user = await usersCollection.findOne({ email });
+    let user = await usersCollection.findOne({ email });
+    
+    // If user doesn't exist, create them with default Student role
     if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+      const newUser = {
+        name: name || email.split('@')[0],
+        email,
+        role: 'Student', // Default role for new Firebase users
+        phone: '',
+        profileImage: profileImage || '',
+        status: 'active',
+        createdAt: new Date(),
+      };
+      const result = await usersCollection.insertOne(newUser);
+      user = { _id: result.insertedId, ...newUser };
     }
 
     // Generate JWT token for this user
