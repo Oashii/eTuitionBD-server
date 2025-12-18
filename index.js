@@ -913,6 +913,40 @@ app.patch('/api/applications/:id', verifyToken, async (req, res) => {
   }
 });
 
+// Update Tutor's Application (Tutor can update their own pending applications)
+app.put('/api/applications/:id', verifyToken, async (req, res) => {
+  try {
+    const applicationId = new ObjectId(req.params.id);
+    const { qualifications, experience, expectedSalary } = req.body;
+
+    const application = await applicationsCollection.findOne({ _id: applicationId });
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    // Only tutor who submitted the application can update it
+    if (application.tutorId.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'Not authorized to update this application' });
+    }
+
+    // Only pending applications can be updated
+    if (application.status !== 'Pending') {
+      return res.status(400).json({ message: 'Cannot update non-pending applications' });
+    }
+
+    await applicationsCollection.updateOne(
+      { _id: applicationId },
+      { $set: { qualifications, experience, expectedSalary, updatedAt: new Date() } }
+    );
+
+    res.json({ message: 'Application updated successfully' });
+  } catch (error) {
+    console.error('Update tutor application error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Delete Application (Tutor can delete their own pending applications)
 app.delete('/api/applications/:id', verifyToken, async (req, res) => {
   try {
