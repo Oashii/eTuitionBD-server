@@ -6,9 +6,11 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 dotenv.config();
-
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const port = process.env.PORT || 5000;
+
+const YOUR_DOMAIN = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Middleware
 app.use(
@@ -684,15 +686,74 @@ app.patch('/api/admin/tuitions/:id', verifyToken, verifyAdmin, async (req, res) 
 
 // ==================== PAYMENT & TRANSACTION ROUTES ====================
 
+// Create Stripe Checkout Session
+app.post('/api/create-checkout-session', verifyToken, async (req, res) => {
+  try {
+    const { applicationId, amount, tutorId, tuitionId } = req.body;
+
+    // Validate required fields
+    if (!applicationId || !amount || !tutorId) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'bdt',
+            product_data: {
+              name: 'Tutor Approval Payment',
+              description: `Payment for tutor application - Application ID: ${applicationId}`,
+            },
+            unit_amount: Math.round(amount * 100), // Convert to cents
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${YOUR_DOMAIN}/checkout?success=true&applicationId=${applicationId}&tutorId=${tutorId}`,
+      cancel_url: `${YOUR_DOMAIN}/checkout/${applicationId}?canceled=true`,
+      metadata: {
+        applicationId: applicationId,
+        tutorId: tutorId,
+        studentId: req.user.userId,
+        tuitionId: tuitionId || '',
+      },
+    });
+
+    res.json({ sessionId: session.id, url: session.url });
+  } catch (error) {
+    console.error('Create checkout session error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Record Payment Transaction
 app.post('/api/payments', verifyToken, async (req, res) => {
   try {
-    const { applicationId, amount, tutorId } = req.body;
+    const { applicationId, amount, tutorId, sessionId } = req.body;
 
     const application = await applicationsCollection.findOne({ _id: new ObjectId(applicationId) });
 
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
+    }
+
+    // Check if payment for this application already exists
+    const existingPayment = await paymentsCollection.findOne({
+      applicationId: new ObjectId(applicationId),
+      studentId: new ObjectId(req.user.userId),
+      tutorId: new ObjectId(tutorId),
+      status: 'Success',
+    });
+
+    if (existingPayment) {
+      return res.status(200).json({
+        message: 'Payment already recorded for this application',
+        payment: existingPayment,
+        isDuplicate: true,
+      });
     }
 
     const payment = {
@@ -703,6 +764,7 @@ app.post('/api/payments', verifyToken, async (req, res) => {
       status: 'Success',
       transactionDate: new Date(),
       transactionId: `TXN-${Date.now()}`,
+      stripeSessionId: sessionId || null,
     };
 
     const result = await paymentsCollection.insertOne(payment);
