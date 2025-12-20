@@ -13,9 +13,21 @@ const port = process.env.PORT || 5000;
 const YOUR_DOMAIN = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://spontaneous-beijinho-77cde9.netlify.app',
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );
@@ -43,7 +55,7 @@ let paymentsCollection;
 // Connect to MongoDB
 async function connectDB() {
   try {
-    await client.connect();
+     client.connect();
     db = client.db('eTuitionBD');
     usersCollection = db.collection('users');
     tuitionsCollection = db.collection('tuitions');
