@@ -10,12 +10,14 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const port = process.env.PORT || 5000;
 
-const YOUR_DOMAIN = process.env.CLIENT_URL || 'http://localhost:5173';
+const YOUR_DOMAIN = process.env.NODE_ENV === 'production' 
+  ? (process.env.CLIENT_URL || 'https://e-tuition-b-d.netlify.app')
+  : '';
 
 // Middleware
 const allowedOrigins = [
-  'http://localhost:5173',
-  'https://spontaneous-beijinho-77cde9.netlify.app',
+  // 'http://localhost:5173',
+  'https://e-tuition-b-d.netlify.app',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
@@ -208,9 +210,9 @@ app.post('/api/auth/save-profile', async (req, res) => {
 // Firebase user login - converts Firebase token to JWT
 app.post('/api/auth/firebase-login', async (req, res) => {
   try {
-    const { email, name, profileImage } = req.body;
+    const { email, name, profileImage, role } = req.body;
     
-    console.log('Firebase login request:', { email, name, profileImage });
+    console.log('Firebase login request:', { email, name, profileImage, role });
 
     // Check if required email is provided
     if (!email) {
@@ -222,12 +224,12 @@ app.post('/api/auth/firebase-login', async (req, res) => {
     
     console.log('User found in DB:', user ? 'yes' : 'no');
     
-    // If user doesn't exist, create them with default Student role
+    // If user doesn't exist, create them with the specified role or default to Student
     if (!user) {
       const newUser = {
         name: name || email.split('@')[0],
         email,
-        role: 'Student', // Default role for new Firebase users
+        role: role || 'Student', // Use provided role or default to Student
         phone: '',
         profileImage: profileImage || '',
         status: 'active',
@@ -724,8 +726,8 @@ app.post('/api/create-checkout-session', verifyToken, async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${YOUR_DOMAIN}/checkout?success=true&applicationId=${applicationId}&tutorId=${tutorId}`,
-      cancel_url: `${YOUR_DOMAIN}/checkout/${applicationId}?canceled=true`,
+      success_url: `https://e-tuition-b-d.netlify.app/checkout?success=true&applicationId=${applicationId}&tutorId=${tutorId}`,
+      cancel_url: `https://e-tuition-b-d.netlify.app/checkout/${applicationId}?canceled=true`,
       metadata: {
         applicationId: applicationId,
         tutorId: tutorId,
